@@ -1,0 +1,89 @@
+<html>
+<head>
+    <title>RPi Zero W Streamer</title>
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+          crossorigin="anonymous"
+          media="none" onload="if(media!='all')media='all'">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css"
+          integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ="
+          crossorigin="anonymous"
+          media="none" onload="if(media!='all')media='all'">
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="card text-center">
+            <img src="stream.mjpg" class="card-img-top img-fluid mx-auto d-block" onclick="capture();" />
+            <div class="card-body">
+                <button class="btn btn-block btn-primary" onclick="capture();">
+                    <i class="fa fa-camera"></i>
+                    Capture
+                </button>
+            </div>
+            <div class="card-footer">
+                <table id="captures" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>filename</th>
+                            <th>actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        function capture() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open('POST', '/api/capture', true);
+            xhttp.onloadend = function() {
+                update_captures();
+            }
+            xhttp.send();
+        }
+        function update_captures() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open('GET', '/api/capture', true);
+            xhttp.onloadend = function() {
+                if (xhttp.status == 200) {
+                    var images = JSON.parse(xhttp.response),
+                        body = '',
+                        table = document.querySelector('table#captures'),
+                        tbody = document.querySelector('table#captures > tbody');
+
+                    for (var i=0; i<images.length; i++) {
+                        var image = images[i];
+                        body += '<tr>' +
+                                '<td><a href="' + image.link + '" target="_blank">' + image.filename + '</a></td>' +
+                                '<td><button class="btn btn-danger" onclick="delete_capture(\'' + image.link + '\');">delete</button></td>' +
+                                '</tr>';
+                    }
+                    if (!body) {
+                        table.hidden = true;
+                    }
+                    else {
+                        table.hidden = false;
+                        tbody.innerHTML = body;
+                    }
+                }
+            }
+            xhttp.send();
+        }
+        function delete_capture(link) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open('DELETE', link, true);
+            xhttp.onloadend = function() {
+                update_captures();
+            }
+            xhttp.send();
+        }
+        update_captures();
+    </script>
+</body>
+
+</html>
