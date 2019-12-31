@@ -5,6 +5,7 @@ import shutil
 import fnmatch
 import picamera
 import logging
+import subprocess
 import socketserver
 from datetime import datetime
 from threading import Condition
@@ -18,11 +19,6 @@ ROTATION = int(os.environ.get('ROTATION', 0))
 
 if ROTATION not in [0, 90, 180, 270]:
     ROTATION = 0
-
-jinja = Environment(
-    loader=FileSystemLoader(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')),
-    autoescape=select_autoescape(['html', 'xml'])
-)
 
 
 class StreamingOutput(object):
@@ -44,10 +40,26 @@ class StreamingOutput(object):
 
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.jinja_environment = Environment(
+            loader=FileSystemLoader(self.template_paths),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
+
+        super().__init__(*args, **kwargs)
+
+    @property
+    def template_paths(self):
+        return [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')]
+
+    def annotate_camera(self):
+        self.server.camera.annotate_background = picamera.Color('black')
+        self.server.camera.annotate_text = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')
+
     def do_GET(self):
         if self.path == '/':
             width, height = RESOLUTION.split('x') if ROTATION in [0, 180] else list(reversed(RESOLUTION.split('x')))
-            content = jinja.get_template('index.html').render(
+            content = self.jinja_environment.get_template('index.html').render(
                 width=width,
                 height=height,
             )
@@ -68,10 +80,10 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    self.server.camera.annotate_text = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')
-                    with output.condition:
-                        output.condition.wait()
-                        frame = output.frame
+                    self.annotate_camera()
+                    with self.server.output.condition:
+                        self.server.output.condition.wait()
+                        frame = self.server.output.frame
                     self.wfile.write(b'--FRAME\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
                     self.send_header('Content-Length', len(frame))
@@ -162,26 +174,23 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-    def __init__(self, address, handler, camera):
-        self.camera = camera
+    def __init__(self, address=('', HTTP_PORT), handler=StreamingHandler):
+        subprocess.call(['modprobe', 'bcm2835-v4l2'])
+
+        self.output = StreamingOutput()
+        self.camera = picamera.PiCamera(resolution='%s' % RESOLUTION, framerate=FRAMERATE)
+        self.camera.rotation = ROTATION
+
+        self.camera.start_recording(self.output, format='mjpeg')
+
         super(StreamingServer, self).__init__(address, handler)
 
 
 if __name__ == '__main__':
-    with picamera.PiCamera(resolution='%s' % RESOLUTION, framerate=FRAMERATE) as camera:
-        camera.rotation = ROTATION
-        camera.annotate_background = picamera.Color('black')
-        camera.annotate_text = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')
-
-        output = StreamingOutput()
-        camera.start_recording(output, format='mjpeg')
-        try:
-            address = ('', HTTP_PORT)
-            server = StreamingServer(address, StreamingHandler, camera)
-            print('Starting camera server', address)
-            server.serve_forever()
-        except Exception as e:
-            print(str(e))
-        finally:
-            camera.stop_recording()
+    try:
+        server = StreamingServer()
+        print('Starting camera server')
+        server.serve_forever()
+    except Exception as e:
+        print(str(e))
     print('Stopping camera server')

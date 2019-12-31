@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>RPi Zero W Streamer</title>
+    <title>{% block title %}RPi Zero W Streamer{% endblock %}</title>
     <link rel="stylesheet"
           href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
           integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
@@ -15,29 +15,51 @@
 </head>
 
 <body>
+    {% block container %}
     <div class="container-fluid">
+        {% block container_content %}
         <div class="card text-center">
-            <img src="stream.mjpg" class="card-img-top img-fluid mx-auto d-block" onclick="capture();" />
-            <div class="card-body">
-                <button class="btn btn-block btn-primary" onclick="capture();">
-                    <i class="fa fa-camera"></i>
-                    Capture
-                </button>
-            </div>
-            <div class="card-footer">
-                <table id="captures" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>filename</th>
-                            <th>actions</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            {% block card_content %}
+
+                {% block stream %}
+                <img src="stream.mjpg" class="card-img-top img-fluid mx-auto d-block" onclick="capture();" />
+                {% endblock %}
+
+                {% block card_body %}
+                <div class="card-body">
+                    {% block card_body_content %}
+                    <button class="btn btn-block btn-primary" onclick="capture();">
+                        <i class="fa fa-camera"></i>
+                        Capture
+                    </button>
+                    {% endblock %}
+                </div>
+                {% endblock %}
+
+                {% block card_footer %}
+                <div class="card-footer">
+                    {% block card_footer_content %}
+                    <table id="captures" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>filename</th>
+                                <th>actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    {% endblock %}
+                </div>
+                {% endblock %}
+
+            {% endblock %}
         </div>
+        {% endblock %}
     </div>
+    {% endblock %}
+
     <script type="text/javascript">
+        {% block javascript %}
         function capture() {
             var xhttp = new XMLHttpRequest();
             xhttp.open('POST', '/api/capture', true);
@@ -83,6 +105,7 @@
             xhttp.send();
         }
         update_captures();
+        {% endblock %}
     </script>
 </body>
 
