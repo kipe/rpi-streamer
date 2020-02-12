@@ -10,6 +10,7 @@ setup(
     packages=['rpi_streamer', 'rpi_streamer.templates'],
     package_data={
         'rpi_streamer.templates': [
+            '*.html',
             'rpi_streamer/templates/*',
         ],
     },

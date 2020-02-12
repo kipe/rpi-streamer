@@ -40,6 +40,8 @@ class StreamingOutput(object):
 
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
+    INDEX_TEMPLATE = 'index.html'
+
     def __init__(self, *args, **kwargs):
         self.jinja_environment = Environment(
             loader=FileSystemLoader(self.template_paths),
@@ -59,7 +61,7 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
             width, height = RESOLUTION.split('x') if ROTATION in [0, 180] else list(reversed(RESOLUTION.split('x')))
-            content = self.jinja_environment.get_template('index.html').render(
+            content = self.jinja_environment.get_template(self.INDEX_TEMPLATE).render(
                 width=width,
                 height=height,
             )

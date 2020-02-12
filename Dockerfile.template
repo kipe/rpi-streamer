@@ -12,7 +12,10 @@ RUN echo "deb http://archive.raspbian.org/raspbian oldstable firmware" >> /etc/a
 
 COPY rpi_streamer /usr/local/src/rpi_streamer
 COPY setup.py /usr/local/src/setup.py
-RUN pip3 install wheel && \
-    pip3 install /usr/local/src
+RUN pip3 install wheel
+RUN pip3 install /usr/local/src && \
+    rm -rf /usr/local/src/rpi_streamer /usr/local/src/setup.py
 
-CMD ["python3", "/usr/local/src/rpi_streamer/rpi_streamer.py"]
+COPY examples/subclass /usr/local/src
+CMD ["python3", "/usr/local/src/subclass.py"]
+# CMD ["python3", "/usr/local/lib/python3.7/dist-packages/rpi_streamer/rpi_streamer.py"]
