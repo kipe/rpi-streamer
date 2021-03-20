@@ -16,6 +16,6 @@ setup(
     },
     install_requires=[
         'picamera==1.13',
-        'Jinja2==2.10.3',
+        'Jinja2==2.11.3',
         'wheel>=0.34.2'
     ])
